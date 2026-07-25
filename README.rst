@@ -42,3 +42,20 @@ const [h2] = await window.showOpenFilePicker();
 const same = await isSameHandle(h1, h2);
 console.log('Same entry?', same);
 ```
+
+Server / Node.js helper
+-----------------------
+
+For environments without native `FileSystemHandle` (Node.js), this repo
+includes a pragmatic implementation that applies the same-entry semantics
+using filesystem identity (stat dev+ino when available).
+
+See `examples/fs_isSameEntry_node.js`. Example CLI usage:
+
+```
+node examples/fs_isSameEntry_node.js path/to/fileA path/to/fileB
+```
+
+The helper returns `true` when the underlying filesystem identifies the two
+paths as the same inode (POSIX) or when resolved paths match as fallback.
+
