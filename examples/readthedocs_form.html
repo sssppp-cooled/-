@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Read the Docs API 示例</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; max-width: 800px; margin: auto; }
+    label { display: block; margin-bottom: 0.5rem; }
+    input { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
+    button { padding: 0.6rem 1rem; font-size: 1rem; }
+    pre { background: #f3f3f3; padding: 1rem; white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <h1>Read the Docs API 示例</h1>
+  <p>这是一个静态 HTML 表单示例，用来演示如何读取 Read the Docs 项目 API 响应并显示结果。</p>
+  <form id="project-form">
+    <label for="slug">项目 slug：</label>
+    <input id="slug" name="slug" value="laura770880-gif" required>
+    <button type="submit">加载项目数据</button>
+  </form>
+  <div id="result"></div>
+
+  <script>
+    const sampleData = {
+      "count": 1,
+      "next": null,
+      "previous": null,
+      "results": [
+        {
+          "_links": {
+            "_self": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/",
+            "builds": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/builds/",
+            "environmentvariables": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/environmentvariables/",
+            "notifications": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/notifications/",
+            "redirects": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/redirects/",
+            "subprojects": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/subprojects/",
+            "superproject": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/superproject/",
+            "sync_versions": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/sync-versions/",
+            "translations": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/translations/",
+            "versions": "https://app.readthedocs.org/api/v3/projects/laura770880-gif/versions/"
+          },
+          "created": "2026-07-25T18:54:19.947995Z",
+          "default_branch": "/",
+          "default_version": "latest",
+          "external_builds_privacy_level": "public",
+          "homepage": null,
+          "id": 1188366,
+          "language": { "code": "en", "name": "English" },
+          "modified": "2026-07-25T18:54:19.948007Z",
+          "name": "laura770880-gif",
+          "privacy_level": "public",
+          "programming_language": { "code": "words", "name": "Only Words" },
+          "readthedocs_yaml_path": null,
+          "repository": { "type": "git", "url": "https://github.com/laura770880-gif/Laila.git" },
+          "single_version": false,
+          "slug": "laura770880-gif",
+          "subproject_of": null,
+          "tags": [],
+          "translation_of": null,
+          "urls": {
+            "builds": "https://app.readthedocs.org/projects/laura770880-gif/builds/",
+            "documentation": "https://laura770880-gif.readthedocs.io/en/latest/",
+            "downloads": null,
+            "home": "https://app.readthedocs.org/projects/laura770880-gif/",
+            "versions": "https://app.readthedocs.org/projects/laura770880-gif/versions/"
+          },
+          "users": [{ "username": "laura770880-gif" }],
+          "versioning_scheme": "multiple_versions_with_translations"
+        }
+      ]
+    };
+
+    const form = document.getElementById('project-form');
+    const result = document.getElementById('result');
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const slug = document.getElementById('slug').value.trim();
+      if (slug === 'laura770880-gif') {
+        result.innerHTML = '<pre>' + JSON.stringify(sampleData, null, 2) + '</pre>';
+      } else {
+        result.innerHTML = '<p>仅演示示例数据。请填写 <code>laura770880-gif</code> 或在代码中扩展为真实 API 调用。</p>';
+      }
+    });
+  </script>
+</body>
+</html>
