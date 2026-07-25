@@ -25,3 +25,20 @@ Run:
 export READTHEDOCS_TOKEN="<your-token>"
 python examples/readthedocs_fetch.py
 ```
+
+File System Access API 示例
+--------------------------
+
+如果你的项目在浏览器中需要比较两个文件/目录句柄是否指向相同项，建议使用原生方法 `isSameEntry`（更可靠）。仓库中包含示例脚本 `examples/fs_isSameEntry.js`：
+
+- 它首先做特性检测并调用 `handleA.isSameEntry(handleB)`。
+- 如果 API 不可用，示例提供了基于 `name` 和 `kind` 的退回比较，但这不是完全可靠的替代方法。
+
+浏览器示例用法：
+
+```
+const [h1] = await window.showOpenFilePicker();
+const [h2] = await window.showOpenFilePicker();
+const same = await isSameHandle(h1, h2);
+console.log('Same entry?', same);
+```
