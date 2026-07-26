@@ -1,0 +1,28 @@
+name: Validate Egress IPs
+
+on:
+  push:
+    paths:
+      - 'data/ip_ranges.json'
+      - 'schemas/egress_ips.schema.json'
+  pull_request:
+    paths:
+      - 'data/ip_ranges.json'
+      - 'schemas/egress_ips.schema.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema
+      - name: Validate data against schema
+        run: |
+          python scripts/validate_schema.py

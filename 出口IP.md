@@ -12,14 +12,10 @@
   "results": [
     {
       "cidr": "54.174.62.128/26",
-      "direction": "EGRESS",
-      "service": "API",
       "description": "API & 3rd party integrations"
     },
     {
       "cidr": "143.244.87.0/25",
-      "direction": "EGRESS",
-      "service": "API",
       "description": "API & 3rd party integrations"
     }
   ]
