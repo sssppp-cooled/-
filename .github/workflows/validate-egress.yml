@@ -27,3 +27,10 @@ jobs:
       # 4. 运行你的脚本
       - name: Run scraper
         run: python main.py
+
+
+            - name: Run scraper with display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb  # 虚拟显示
+          xvfb-run python main.py       # 用 xvfb 包装运行
