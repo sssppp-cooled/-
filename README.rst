@@ -1,3 +1,6 @@
+啊昊吃肉
+========
+
 Lumache 项目说明
 =================
 
@@ -25,6 +28,34 @@ Run:
 export READTHEDOCS_TOKEN="<your-token>"
 python examples/readthedocs_fetch.py
 ```
+
+HubSpot IP Ranges 示例
+----------------------
+
+本仓库新增了 `examples/hubspot_ip_ranges.py`，用于调用 HubSpot 官方
+IP range API，获取用于防火墙 allowlist 的 CIDR 列表。
+
+使用前请设置认证环境变量：
+
+```
+export HUBSPOT_ACCESS_TOKEN="<your-token>"
+```
+
+或：
+
+```
+export HUBSPOT_API_KEY="<your-api-key>"
+```
+
+示例运行：
+
+```
+python examples/hubspot_ip_ranges.py --service API --service DNS --direction INGRESS
+```
+
+该示例只接受官方支持的 `service` 值：`EMAIL`、`API`、`DNS`、
+`WEB_SCRAPING`、`TEST_SERVICE`，以及 `direction` 值：`INGRESS` 或
+`EGRESS`。
 
 File System Access API 示例
 --------------------------
