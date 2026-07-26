@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Egress IP List",
+  "type": "object",
+  "required": ["results"],
+  "properties": {
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cidr", "description"],
+        "properties": {
+          "cidr": {
+            "type": "string",
+            "description": "CIDR 表示法",
+            "examples": ["54.174.62.128/26"]
+          },
+          "description": {
+            "type": "string",
+            "description": "用途说明",
+            "examples": ["API & 3rd party integrations"]
+          },
+          "direction": {
+            "type": "string",
+            "description": "可选，流向（EGRESS/INGRESS）"
+          },
+          "service": {
+            "type": "string",
+            "description": "可选，所属服务"
+          },
+          "country": {
+            "type": "string",
+            "description": "可选，ISO 3166-1 alpha-2 国家码",
+            "pattern": "^[A-Z]{2}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

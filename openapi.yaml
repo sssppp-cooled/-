@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: 出口 IP API
+  version: 1.0.0
+  description: |
+    示例接口，演示“做法 C”：仅为关键边界层（API 入参 / 出参）定义 schema。
+
+paths:
+  /egress-ips:
+    get:
+      summary: 获取出口 IP 列表
+      responses:
+        '200':
+          description: 成功返回出口 IP 列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EgressIPList'
+    post:
+      summary: 上报或验证一组出口 IP（示例）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EgressIPList'
+      responses:
+        '200':
+          description: 验证/接收成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EgressIPList'
+
+components:
+  schemas:
+    EgressIPItem:
+      type: object
+      description: 单条出口 IP 记录（简化版）
+      required:
+        - cidr
+        - description
+      properties:
+        cidr:
+          type: string
+          description: CIDR 表示法（例如 54.174.62.128/26）
+          example: "54.174.62.128/26"
+        description:
+          type: string
+          description: 简短用途说明
+          example: "API & 3rd party integrations"
+        direction:
+          type: string
+          description: 可选，流向（例如 EGRESS / INGRESS）
+          example: "EGRESS"
+        service:
+          type: string
+          description: 可选，所属服务标识
+          example: "API"
+        country:
+          type: string
+          description: 可选，ISO 3166-1 alpha-2 国家码
+          example: "US"
+
+    EgressIPList:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EgressIPItem'
+      required:
+        - results
