@@ -1,0 +1,153 @@
+import time
+import random
+import math
+import capsolver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+
+# =====================================================================
+# 【中文提示词 / 避坑指南 1：鼠标轨迹的“死亡凝视”】
+# =====================================================================
+# hCaptcha 极其狡猾，它不仅看 Token，还会记录你注入 Token 前 5 秒的鼠标轨迹。
+# 如果你用 Selenium 瞬间注入 JS，没有真实的鼠标移动，TPS 依然会判定你是机器。
+# 破局唯一解：在注入前，必须让鼠标缓慢、带有物理惯性（缓动曲线）和微小抖动地移动到复选框上，
+# 并且【必须悬停 1 秒】（模拟真人盯着看一眼），然后再执行注入。
+# =====================================================================
+
+def human_like_move_and_hover(driver, target_element):
+    """
+    模拟真人鼠标移动（带有缓动惯性和随机抖动）并悬停
+    """
+    action = ActionChains(driver)
+    
+    # 1. 先随机移动到屏幕某个无关角落（模拟真人发呆或看别处）
+    random_x = random.randint(50, 200)
+    random_y = random.randint(50, 200)
+    action.move_by_offset(random_x, random_y).perform()
+    time.sleep(random.uniform(0.3, 0.8)) # 真人思考时间
+
+    # 2. 获取目标元素（hCaptcha 复选框）的中心坐标
+    target_x = target_element.location['x'] + target_element.size['width'] / 2
+    target_y = target_element.location['y'] + target_element.size['height'] / 2
+    
+    # 3. 分段移动，模拟人类手部肌肉的“不精准”和“贝塞尔曲线”感
+    steps = random.randint(20, 35) # 移动步数，越多越平滑
+    
+    for i in range(steps):
+        # 计算进度 (0.0 到 1.0)
+        progress = (i + 1) / steps
+        
+        # 【核心算法】使用 Ease-Out 缓动函数 
+        # 模拟人类“开始移动快、靠近目标时减速瞄准”的物理惯性
+        ease_progress = 1 - math.pow(1 - progress, 3)
+        
+        # 计算当前应该到达的坐标，并加入 ±2 像素的微小手部抖动
+        move_x = (target_x * ease_progress) + random.uniform(-2, 2) 
+        move_y = (target_y * ease_progress) + random.uniform(-2, 2)
+        
+        # 执行移动
+        action.move_by_offset(int(move_x / steps), int(move_y / steps)).perform()
+        time.sleep(random.uniform(0.01, 0.04)) # 每步之间的微小延迟
+
+    # 4. 【致命细节】悬停 1 秒！真人看到验证码框，会盯着看一眼再点
+    # 如果没有这 1 秒，hCaptcha 会认为你是“直奔目标的机器人”
+    time.sleep(random.uniform(0.8, 1.5))
+
+
+# =====================================================================
+# 【中文提示词 / 避坑指南 2：CapSolver 企业版陷阱】
+# =====================================================================
+# TPS 这种级别的网站，用的是 hCaptcha Enterprise（企业版）。
+# 如果你在 CapSolver 里用普通的 HCaptchaTaskProxyLess 打码，大概率一直返回“验证失败”。
+# 破局点：必须在 solve 字典里加上 "enterprise": True。
+# 如果页面加载时没有直接弹出图片，而是静默验证，还要加上 "isInvisible": True。
+# =====================================================================
+
+def bypass_hcaptcha_enterprise(driver, current_url, sitekey):
+    """
+    调用 CapSolver 破解 hCaptcha 企业版
+    """
+    print("[*] 正在调用 CapSolver 破解 hCaptcha 企业版...")
+    
+    try:
+        solution = capsolver.solve({
+            "type": "HCaptchaTaskProxyLess",
+            "websiteURL": current_url,
+            "websiteKey": sitekey,
+            
+            # 👇 【核心参数】必须加这两行，否则 TPS 必拒 Token 👇
+            "enterprise": True,   # 告诉打码平台这是企业版验证码
+            "isInvisible": True,  # 告诉打码平台这是无感/静默验证模式
+            
+            # 保持浏览器指纹一致，防止打码平台返回的 Token 与当前浏览器环境不匹配
+            "userAgent": driver.execute_script("return navigator.userAgent;") 
+        })
+        
+        token = solution.get("gRecaptchaResponse")
+        if not token:
+            print("[-] 打码平台未返回有效 Token")
+            return None
+            
+        print("[+] 打码成功！拿到企业版 Token，准备注入...")
+        return token
+        
+    except Exception as e:
+        print(f"[-] 打码 API 调用失败: {e}")
+        return None
+
+
+# =====================================================================
+# 【主流程：将“鼠标轨迹演戏”与“企业版打码”完美结合】
+# =====================================================================
+def solve_tps_hcaptcha_ultimate(driver):
+    """
+    TPS hCaptcha 终极破解流程（直接在你的主循环里调用这个函数）
+    """
+    # 1. 提取 Sitekey
+    try:
+        hcaptcha_div = driver.find_element(By.CLASS_NAME, "h-captcha")
+        sitekey = hcaptcha_div.get_attribute("data-sitekey")
+    except:
+        print("[-] 没找到 hCaptcha 的 sitekey，可能页面结构变了")
+        return False
+
+    # 2. 【第一步：演给 hCaptcha 看】鼠标拟人化移动并悬停
+    try:
+        # 定位验证码的容器
+        target_box = driver.find_element(By.CSS_SELECTOR, ".h-captcha, iframe[title*='hCaptcha']")
+        human_like_move_and_hover(driver, target_box)
+    except Exception as e:
+        print(f"[!] 找不到目标元素，跳过鼠标移动直接打码（有被风控风险）: {e}")
+
+    # 3. 【第二步：后台花钱买 Token】调用企业版打码
+    token = bypass_hcaptcha_enterprise(driver, driver.current_url, sitekey)
+    if not token:
+        return False
+
+    # 4. 【第三步：注入 Token 并触发回调】
+    inject_js = f"""
+        // 找到 hCaptcha 的隐藏响应框并塞入 Token
+        let textarea = document.querySelector('textarea[name="h-captcha-response"]');
+        if(textarea) {{
+            textarea.style.display = 'block';
+            textarea.value = '{token}';
+            textarea.style.display = 'none';
+        }}
+        // 触发企业版验证成功的回调事件
+        if(typeof hcaptcha !== 'undefined') {{
+            hcaptcha.getResponse();
+        }}
+    """
+    driver.execute_script(inject_js)
+    
+    # 5. 模拟真人点击“提交/搜索”按钮
+    time.sleep(random.uniform(0.5, 1.2))
+    try:
+        # 根据你的 TPS 页面实际按钮 class 修改这里
+        submit_btn = driver.find_element(By.CSS_SELECTOR, "button[type='submit'], .search-btn, #submit-button")
+        submit_btn.click()
+        print("[+] Token 注入并提交成功！TPS 应该放行了。")
+        return True
+    except:
+        print("[-] 找不到提交按钮，请手动检查页面结构")
+        return False
