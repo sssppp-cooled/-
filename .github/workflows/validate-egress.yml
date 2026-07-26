@@ -1,61 +1,22 @@
-name: Scraper CI
+proxy:
+  proxy_file: "proxies.json"
+  max_fail: 3
+  cooldown_minutes: 30
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+browser:
+  headless: false
+  window_size: "1920,1080"
+  lang: "en-US"
+  timezone: "America/New_York"
 
-jobs:
-  scrape:
-    runs-on: ubuntu-latest
-    
-    steps:
-      # 1. 检出代码（v4 在 Node 24 下通常还能跑，但建议测试 v5）
-      - uses: actions/checkout@v4
-      
-      # 2. 设置 Python（v5 是 Node 24 安全版本）
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-      
-      # 3. 安装依赖
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-      
-      # 4. 运行你的脚本
-      - name: Run scraper
-        run: python main.py
+delays:
+  page_load: [10, 18]
+  between_queries: [20, 45]
+  typing: [0.08, 0.3]
+  scroll_pause: [1.0, 3.0]
+  post_search_read: [15, 30]
 
-
-            - name: Run scraper with display
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb  # 虚拟显示
-          xvfb-run python main.py       # 用 xvfb 包装运行
-# values.yaml for gha-runner-scale-set
-runnerScaleSetName: "scraper-runners"
-githubConfigUrl: "https://github.com/your-org/your-repo"
-githubConfigSecret: "pre-defined-secret"
-template:
-  spec:
-    containers:
-      - name: runner
-        image: your-custom-image:with-chrome-xvfb-python  # 你自己维护的巨肥镜像
-        env:
-          - name: PROXY_URL
-            valueFrom:
-              secretKeyRef:
-                name: proxy-secret
-                key: url  # 美国住宅代理
-                name: Scraper Job
-on: workflow_dispatch
-jobs:
-  scrape:
-    runs-on: scraper-runners  # 你的 ARC runner
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run with Xvfb
-        run: |
-          xvfb-run python scraper.py
+scraping:
+  max_retries: 3
+  output_file: "data/output.csv"
+  batch_size: 10
