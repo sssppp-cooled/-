@@ -34,3 +34,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb  # 虚拟显示
           xvfb-run python main.py       # 用 xvfb 包装运行
+# values.yaml for gha-runner-scale-set
+runnerScaleSetName: "scraper-runners"
+githubConfigUrl: "https://github.com/your-org/your-repo"
+githubConfigSecret: "pre-defined-secret"
+template:
+  spec:
+    containers:
+      - name: runner
+        image: your-custom-image:with-chrome-xvfb-python  # 你自己维护的巨肥镜像
+        env:
+          - name: PROXY_URL
+            valueFrom:
+              secretKeyRef:
+                name: proxy-secret
+                key: url  # 美国住宅代理
+                name: Scraper Job
+on: workflow_dispatch
+jobs:
+  scrape:
+    runs-on: scraper-runners  # 你的 ARC runner
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run with Xvfb
+        run: |
+          xvfb-run python scraper.py
