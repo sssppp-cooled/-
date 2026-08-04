@@ -1,62 +1,51 @@
-#啊昊你怎么这么
-
-=================
-
-这个仓库是一个基于 Python 的示例项目，用来演示如何创建一个
-简单的 Python 库，并配套 Sphinx 文档站点。
-
-项目包含以下内容：
-
-- 一个名为 ``lumache`` 的示例模块
-- 简单的 API 说明和使用示例
-- 可直接部署到 Read the Docs 的文档结构
-
-如果你想了解更多，可以查看文档目录中的说明内容。
-
-Example: Read the Docs API
--------------------------
-
-Do NOT hardcode API tokens in code. See `examples/readthedocs_fetch.py` for a
-minimal example that reads the `READTHEDOCS_TOKEN` environment variable and
-performs a safe request to the Read the Docs API.
-
-Run:
-
-```
-export READTHEDOCS_TOKEN="<your-token>"
-python examples/readthedocs_fetch.py
-```
-
-File System Access API 示例
---------------------------
-
-如果你的项目在浏览器中需要比较两个文件/目录句柄是否指向相同项，建议使用原生方法 `isSameEntry`（更可靠）。仓库中包含示例脚本 `examples/fs_isSameEntry.js`：
-
-- 它首先做特性检测并调用 `handleA.isSameEntry(handleB)`。
-- 如果 API 不可用，示例提供了基于 `name` 和 `kind` 的退回比较，但这不是完全可靠的替代方法。
-
-浏览器示例用法：
-
-```
-const [h1] = await window.showOpenFilePicker();
-const [h2] = await window.showOpenFilePicker();
-const same = await isSameHandle(h1, h2);
-console.log('Same entry?', same);
-```
-
-Server / Node.js helper
------------------------
-
-For environments without native `FileSystemHandle` (Node.js), this repo
-includes a pragmatic implementation that applies the same-entry semantics
-using filesystem identity (stat dev+ino when available).
-
-See `examples/fs_isSameEntry_node.js`. Example CLI usage:
-
-```
-node examples/fs_isSameEntry_node.js path/to/fileA path/to/fileB
-```
-
-The helper returns `true` when the underlying filesystem identifies the two
-paths as the same inode (POSIX) or when resolved paths match as fallback.
-
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          监控与可观测性层 (Observability)                   │
+│  [ Prometheus ] <──── metrics ───── [ Grafana Dashboards ] ──── [ Alerts ]   │
+│  (设备在线率, 代理成功率, API 发现数, Token 消耗速率, UI 交互延迟)           │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+┌──────────────────────────────────────┴──────────────────────────────────────┐
+│                          核心业务与调度层 (Core Logic)                      │
+│  ┌──────────────────────┐  ┌──────────────────────┐  ┌───────────────────┐  │
+│  │ Target Scheduler     │  │ Bounty Matcher       │  │ Anomaly Detector  │  │
+│  │ (IoT Token 负载均衡) │  │ (Scope 匹配引擎)     │  │ (流量/UI 异常检测)│  │
+│  │ - 并发控制           │  │ - 匹配 H1/BC 资产    │  │ - 基线对比        │  │
+│  │ - Token 刷新/轮换    │  │ - 过滤 Out-of-scope  │  │ - 敏感数据泄露    │  │
+│  └──────────┬───────────┘  └──────────┬───────────┘  └─────────┬─────────┘  │
+└─────────────┼─────────────────────────┼────────────────────────┼────────────┘
+              │ (分配测试任务)          │ (匹配到的端点)         │ (异常流量)
+              ▼                         ▼                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          自动化与情报层 (Automation & Intel)                │
+│                                                                             │
+│  [ UI 控制面 (HTTP/RPC) ]                 [ 数据面 (Stream/Python Native) ] │
+│  ┌─────────────────────────┐              ┌──────────────────────────────┐  │
+│  │ LightweightIOSDriver    │              │ Intelligence Collector       │  │
+│  │ (直连 DeviceKit/WDA)    │              │ (pymobiledevice3 封装)       │  │
+│  │                         │              │                              │  │
+│  │ 1. 获取 UI 树 (Source)  │              │ 1. pcapd (网络流量实时捕获)  │  │
+│  │ 2. UI 树解析 (XPath)    │ ──(指导)──▶  │ 2. syslog (系统日志/Token)   │  │
+│  │ 3. 精准交互 (Tap/Swipe) │              │ 3. house_arrest (沙盒文件)   │  │
+│  └────────────┬────────────┘              └──────────────┬───────────────┘  │
+│               │ (HTTP/JSON-RPC)                          │ (USB Stream)     │
+└───────────────┼──────────────────────────────────────────┼──────────────────┘
+                │                                          │
+                ▼                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          设备农场与网络层 (Device Farm & Network)           │
+│                                                                             │
+│  [ go-ios REST-API 微服务 (控制中枢) ] <──(HTTP)── [ Python Orchestrator ]  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ 1. 自动签名 (App Store Connect API -> Profile)                        │  │
+│  │ 2. 部署引擎 (Install DeviceKit/WDA -> 转发 127.0.0.1:8100)            │  │
+│  │ 3. 代理注入 (ios httpproxy -> 安装 .mobileconfig)                     │  │
+│  │ 4. 隧道管理 (iOS 17+ RemoteXPC Tunnel)                                │  │
+│  └─────────────────────────────────┬─────────────────────────────────────┘  │
+│                                    │ (USB / Userspace Tunnel)               │
+│  [ ProxyHat Pool ] ──(Auth)──▶     ▼                                        │
+│  (美国住宅 IP)               ┌──────────────┐                               │
+│  - Sticky Session            │ iPhone Node  │ (无卡, 连 WiFi)               │
+│  - IP Rotation               │ - DeviceKit  │ (提供 UI 树 & 交互)           │
+│  - Health Check              │ - Target App │ (产生 API 流量)               │
+│                              └──────────────┘                               │
+└─────────────────────────────────────────────────────────────────────────────┘
