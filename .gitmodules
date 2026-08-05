@@ -1,0 +1,14 @@
+[submodule "third_party/geoip-all-in-one"]
+	path = third_party/geoip-all-in-one
+	url = https://github.com/daijro/geoip-all-in-one.git
+	branch = main
+
+[submodule "third_party/asn"]
+	path = third_party/asn
+	url = https://github.com/nitefood/asn.git
+	branch = master
+
+[submodule "third_party/ripe-atlas-cousteau"]
+	path = third_party/ripe-atlas-cousteau
+	url = https://github.com/RIPE-NCC/ripe-atlas-cousteau.git
+	branch = master
