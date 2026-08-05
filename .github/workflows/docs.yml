@@ -1,169 +1,38 @@
-name: Docs CI/CD
+docs_yml = '''name: Docs
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, feature/*]
   pull_request:
     branches: [main]
 
-# 设置 GITHUB_TOKEN 权限，允许部署到 GitHub Pages
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-# 只允许一个并发部署
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
-  # ========================================
-  # Job 1: 文档质量检查（PR 阶段）
-  # ========================================
-  docs-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install mkdocs-material mkdocstrings[python]
-          pip install pydocstyle darglint
-
-      # 检查 docstring 覆盖率
-      - name: Check docstring coverage
-        run: |
-          pip install interrogate
-          interrogate -v \
-            --ignore-init-method \
-            --ignore-init-module \
-            --fail-under 80 \
-            proxy_pool.py h1_client.py bc_client.py traffic_listener.py
-
-      # 检查 docstring 格式（Google 风格）
-      - name: Check docstring style
-        run: |
-          pydocstyle --convention=google \
-            proxy_pool.py h1_client.py bc_client.py
-
-      # 检查文档中的死链接
-      - name: Check broken links
-        run: |
-          pip install mkdocs-htmlproofer-plugin
-          mkdocs build --strict  # --strict 让警告也变成错误
-
-  # ========================================
-  # Job 2: 构建文档
-  # ========================================
-  docs-build:
-    needs: docs-lint
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 需要完整历史，用于 mike 版本管理
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install mkdocs-material mkdocstrings[python] mike
+          pip install -e .
+          pip install pytest black mypy
 
-      # 从 Typer CLI 自动生成命令参考文档
-      - name: Generate CLI docs
-        run: |
-          pip install typer[all]
-          python -c "
-          import typer
-          from main import app
-          from typer.testing import CliRunner
-          from pathlib import Path
-          
-          runner = CliRunner()
-          result = runner.invoke(app, ['--help'])
-          Path('docs/cli-reference.md').write_text(f'''# CLI Reference\n\n\`\`\`\n{result.output}\n\`\`\`\n''')
-          "
+      - name: Lint with black
+        run: black --check ios_traffic_intel/
 
-      # 构建文档
-      - name: Build docs
-        run: mkdocs build --strict
+      - name: Type check with mypy
+        run: mypy ios_traffic_intel/ --ignore-missing-imports
 
-      # 上传构建产物（供后续部署使用）
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs-site
-          path: site/
+      - name: Test with pytest
+        run: pytest tests/ -v
+'''
 
-  # ========================================
-  # Job 3: 部署到 GitHub Pages（仅 main 分支）
-  # ========================================
-  docs-deploy:
-    needs: docs-build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docs-site
-          path: site/
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload to Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site/
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  # ========================================
-  # Job 4: PR 预览部署（可选，需要 Vercel/Netlify）
-  # ========================================
-  docs-preview:
-    needs: docs-build
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docs-site
-          path: site/
-
-      # 使用 surge.sh 做 PR 预览（免费）
-      - name: Deploy preview
-        run: |
-          npm install -g surge
-          surge site/ api-bounty-intel-pr-${{ github.event.number }}.surge.sh \
-            --token ${{ secrets.SURGE_TOKEN }}
-
-      # 在 PR 中评论预览链接
-      - name: Comment PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '📖 文档预览已就绪: https://api-bounty-intel-pr-${{ github.event.number }}.surge.sh'
-            })
+with open(os.path.join(workflows_en, "docs.yml"), "w", encoding="utf-8") as f:
+    f.write(docs_yml)
