@@ -1,0 +1,89 @@
+"""go_ios_wrapper.py - go-ios CLI 的 Python 封装 (当前最稳方案)
+等待 go-ios REST API 完善后，可将此文件内部实现替换为 HTTP 调用。
+"""
+import subprocess
+import json
+import logging
+from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+class GoIOSWrapper:
+    """go-ios CLI 封装。支持 iOS 17+ 隧道与 WDA 启动。"""
+    
+    BIN = "ios"  # 确保 go-ios 二进制文件在 PATH 中
+
+    def _run(self, *args, check=True, json_output=False) -> dict | str:
+        """执行 go-ios 命令"""
+        cmd = [self.BIN, *args]
+        if json_output:
+            cmd.append("--json")
+            
+        logger.debug(f"Running: {' '.join(cmd)}")
+        try:
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                check=check,
+                timeout=60
+            )
+            if json_output and result.stdout.strip():
+                return json.loads(result.stdout)
+            return result.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            logger.error(f"go-ios failed: {e.stderr}")
+            raise RuntimeError(f"go-ios error: {e.stderr}")
+        except FileNotFoundError:
+            raise RuntimeError("go-ios binary not found in PATH. Please install it.")
+
+    # --- 设备管理 ---
+    def list_devices(self) -> List[str]:
+        """获取所有连接设备的 UDID 列表"""
+        # go-ios list 默认输出 JSON 格式的设备列表
+        output = self._run("list", json_output=True)
+        # 解析返回的 JSON，提取 udid
+        # 注意：具体 JSON 结构需根据 go-ios 版本微调
+        if isinstance(output, dict) and 'deviceList' in output:
+            return [d['udid'] for d in output['deviceList']]
+        return []
+
+    # --- iOS 17+ 核心：隧道与 WDA ---
+    def start_tunnel(self, udid: str) -> subprocess.Popen:
+        """启动 iOS 17+ userspace 隧道 (后台进程)"""
+        logger.info(f"Starting tunnel for {udid}...")
+        # 使用 Popen 让隧道在后台运行
+        return subprocess.Popen(
+            [self.BIN, "tunnel", "start", "--udid", udid],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+    def run_wda(self, udid: str, bundle_id: str, test_bundle_id: str) -> subprocess.Popen:
+        """免 Xcode 启动 WebDriverAgent (后台进程)"""
+        logger.info(f"Starting WDA on {udid}...")
+        return subprocess.Popen(
+            [self.BIN, "runwda", 
+             "--udid", udid,
+             "--bundleid", bundle_id,
+             "--testrunnerbundleid", test_bundle_id,
+             "--xctestconfig", "WebDriverAgentRunner.xctest"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+    # --- 应用管理 ---
+    def install(self, udid: str, ipa_path: str):
+        """安装 IPA"""
+        self._run("install", "--path", ipa_path, "--udid", udid)
+        logger.info(f"Installed {ipa_path} on {udid}")
+
+    def launch(self, udid: str, bundle_id: str):
+        """启动应用"""
+        self._run("launch", bundle_id, "--udid", udid)
+
+    # --- 端口转发 ---
+    def forward(self, udid: str, local_port: int, device_port: int):
+        """端口转发 (如 WDA 8100)"""
+        # 注意：go-ios 的 forward 可能需要后台运行，或者使用 pymobiledevice3 的 usbmux
+        self._run("forward", str(local_port), str(device_port), "--udid", udid)
