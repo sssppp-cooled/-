@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ios-traffic-intel"
+version = "0.1.0"
+description = "iOS app traffic analyzer for bug bounty & mobile security testing"
+readme = "README.rst"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "sssppp-cooled"}
+]
+dependencies = [
+    "requests>=2.28.0",
+    "urllib3>=1.26.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "black>=22.0", "mypy>=0.990"]
+
+[project.scripts]
+ios-traffic = "ios_traffic_intel.cli:main"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
