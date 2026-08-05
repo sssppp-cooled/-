@@ -1,0 +1,5 @@
+plugins:
+  - search
+  - htmlproofer:
+      raise_error: true
+      validate_external_urls: true
