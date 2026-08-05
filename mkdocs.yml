@@ -1,18 +1,13 @@
-# 项目根目录下的 mkdocs.yml
-site_name: 我的项目文档
+site_name: iOS Traffic Intel
+theme: readthedocs
 
-extra:
-  version:
-    provider: mike
-    default: stable
+nav:
+  - Home: index.md
+  - CLI Reference: CLI.md
+  - Structure: structure.md
+  - Go-ios Integration: GOIOS_INTEGRATION.md
 
-plugins:
-  - search
-  - mike:
-      alias_type: symlink
-      redirect_template: null
-      canonical_version: null
-  # 📌 加上下面这段（检查链接）
-  - htmlproofer:
-      raise_error: true
-      validate_external_urls: true
+markdown_extensions:
+  - toc:
+      permalink: true
+  - tables
