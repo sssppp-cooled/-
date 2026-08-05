@@ -1,0 +1,9 @@
+# 1. 先安装 Linux 系统级的 aspell 拼写库
+      - name: Install Aspell
+        run: sudo apt-get update && sudo apt-get install -y aspell aspell-en
+
+      # 2. 再运行拼写检查
+      - name: Spell check
+        run: |
+          pip install pyspelling
+          pyspelling -c .pyspelling.yaml
