@@ -5,6 +5,27 @@ mitmproxy 动态上游代理轮换器 (修正版)
 【修正说明】
     使用 flow.server_conn.address 替代修改 request.host，
     完美解决 HTTPS SNI 校验失败和 HTTP Host 头错误的问题。
+
+【终端启动命令 —— 复制粘贴即可】
+
+    # 1. 配置环境变量
+    export PROXY_ENTRIES="us1.proxyhat.io:8080,myuser,mypass|us2.proxyhat.io:8080,myuser,mypass"
+    export PROXY_ROTATE_MODE="round-robin"
+    export PROXY_ROTATE_AFTER="10"
+
+    # 2. 只用轮换器
+    mitmdump -s scripts/mitm_proxy_rotator.py -p 8080
+
+    # 3. 轮换器 + 流量捕获 + Rota 推送（全功能闭环）
+    mitmdump -s scripts/mitm_proxy_rotator.py -s scripts/mitm_rota_addon.py -p 8080
+
+【iPhone 代理设置】
+    Wi-Fi → 配置代理 → 手动
+    服务器: <运行 mitmdump 的服务器 IP>
+    端口: 8080
+
+【热重载】
+    修改本文件保存后，mitmproxy 自动重新加载，无需重启
 ═══════════════════════════════════════════════════════════════
 """
 
@@ -13,6 +34,7 @@ import base64
 import random
 import time
 from mitmproxy import http
+
 
 class ProxyEntryRotator:
     def __init__(self):
@@ -75,11 +97,11 @@ class ProxyEntryRotator:
         self.request_count = 0
 
     def _apply_proxy(self, flow: http.HTTPFlow, entry: dict):
-        """核心修正：使用 server_conn.address 设置上游代理 [[19]]"""
+        """核心修正：使用 server_conn.address 设置上游代理"""
         # 1. 告诉 mitmproxy 底层连接到这个代理 IP
         flow.server_conn.address = (entry["host"], entry["port"])
         
-        # 2. 注入代理认证头 (mitmproxy 会自动将其传递给上游代理) [[15]]
+        # 2. 注入代理认证头 (mitmproxy 会自动将其传递给上游代理)
         if entry["user"]:
             creds = base64.b64encode(f"{entry['user']}:{entry['pass']}".encode()).decode()
             flow.request.headers["Proxy-Authorization"] = f"Basic {creds}"
