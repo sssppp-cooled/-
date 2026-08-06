@@ -1,96 +1,44 @@
-# 5. README.rst（替换 README.md）
-readme_rst = '''iOS Traffic Intel
-===============
+<p align="center">
+  <img src="./banner.png" alt="Project Banner" width="100%">
+</p>
 
-iOS 应用流量情报分析器。从 HAR/mitmproxy 流量中提取 API 端点、检测 IDOR/BOLA 模式，
-输出给 **Nuclei** 扫描器和 **Rota** 代理池。
+<h1 align="center">iOS Traffic Intel</h1>
+<p align="center">三源交叉验证（GeoIP 35% + ASN 40% + IPQS 25%）· 美国住宅 IP 置信度评分系统</p>
 
-架构定位
---------
+## 🎯 主角工具：verify_rota_pool.py
 
-::
+> [!IMPORTANT]
+> **出身**：本脚本是 [go-ios](https://github.com/danielpaulus/go-ios) 所带来灵感的延伸。正如 go-ios 让 iOS 设备控制变得开放、可脚本化，`verify_rota_pool.py` 把“美国住宅 IP 地理验证”变成了自动化闭环。
+> **闭环**：从您自建的代理池调度中心拉取代理列表 ➡️ 送入三源交叉验证模型 ➡️ 写回标签（US_Residential / Datacenter / 置信度分数）。
 
-    iOS Device (go-ios 管理, Go)
-           | USB / Userspace Tunnel
-           v
-    Traffic Capture (mitmproxy / Burp / pcapd)
-           | .har / .mitm / .pcap
-           v
-    TrafficAnalyzer (本模块) --> Nuclei targets
-           |
-           v
-    TemplateGenerator ---------> 自动生成 Nuclei YAML
-           |
-           v
-    GeoValidator ----------------> 多源 GeoIP + ASN + RIPE Atlas 验证
-           |
-           v
-    Rota Proxy Pool (Go) ------> 后端 API 扫描
+> [!NOTE]
+> **三源交叉验证模型（权重与检查项）**
+> - **① 多源 GeoIP 比对（35%）**：IPinfo + IP-API + MaxMind ➡️ 国家是否一致 = US？一致性 ≥ 67%？
+> - **② ASN + BGP 分析（40%）**：Team Cymru whois ➡️ ASN 是否美国注册？前缀粒度 /24+？已知住宅 ISP？
+> - **③ 外部实证（25%）**：IPQualityScore ➡️ fraud_score ≤ 50？residential = True？
 
-**明确分工：**
+> [!WARNING]
+> **IPv6 降级策略**：IPv6 地理精度仅 40–80% ➡️ 置信度整体 ×0.7 惩罚，阈值收紧为 confidence ≥ 70、checks_passed ≥ 3。
 
-=================== ====== =========================== ===================
-组件                 语言   职责                        不做什么
-=================== ====== =========================== ===================
-ios_traffic_intel    Python HAR 解析、API 提取、IDOR   代理池管理、设备控制
-Rota                 Go     代理池、健康检查、IP 轮换    流量内容分析
-go-ios               Go     iOS 设备管理、WDA 部署       代理池、漏洞扫描
-Nuclei               Go     漏洞扫描、API 安全测试       设备管理、代理池
-=================== ====== =========================== ===================
+## 🏗️ 架构与分工
 
-安装
-----
+| 组件 | 语言 | 职责 | 不做什么 |
+|---|---|---|---|
+| `ios_traffic_intel` | Python | HAR 解析、API 提取、IDOR 代理池管理 | 流量内容分析 |
+| `GeoValidator` | Python | 多源 GeoIP + ASN 验证、置信度打分 | 设备控制 |
+| `自建代理池调度中心` | Go/Python | 代理池调度、健康检查、IP 轮换、API 提供 | 流量内容分析 |
+| `go-ios` | Go | iOS 设备管理、WDA 部署 | 代理池、漏洞扫描 |
 
-.. code-block:: bash
+<details>
+<summary>📂 点击展开：项目目录结构</summary>
 
-    git clone https://github.com/sssppp-cooled/-/git
-    cd ios-traffic-intel
-    git submodule update --init --recursive
-    pip install -e .
-
-用法
-----
-
-解析 HAR
-~~~~~~~~
-
-.. code-block:: bash
-
-    ios-traffic parse traffic.har --filter idor --export-json --output-dir ./out
-
-输出：
-
-- ``./out/nuclei_targets.txt`` — Nuclei 扫描目标
-- ``./out/nuclei_idor_targets.txt`` — 仅 IDOR 高危
-- ``./out/rota_source_ips.txt`` — 源 IP 情报
-- ``./out/traffic_report.json`` — 完整 JSON 报告
-
-验证 Rota 代理池
-~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-    python scripts/verify_rota_pool.py \\
-        --pool-id 1 \\
-        --rota-url http://rota-server:80 \\
-        --token $ROTA_JWT \\
-        --filter-v4 \\
-        --min-confidence 80 \\
-        --write-tags
-
-写回 Rota 的标签：
-
-- ``us_residential=true/false``
-- ``confidence=85.5``
-- ``ipv6=false``
-- ``checked_at=1722825600``
-
-目录结构
---------
-
-见 ``docs/structure.md``
-
-License
--------
-
-MIT
+```text
+.
+├── ios_traffic_intel/      # 核心库：流量解析、API 提取、漏洞检测逻辑
+│   ├── parsers/            # HAR / pcap 解析器
+│   ├── analyzers/          # IDOR / BOLA 模式检测
+│   └── validators/         # GeoIP / ASN 验证引擎
+├── scripts/                # 命令行工具与自动化脚本
+│   └── verify_rota_pool.py # 主角：代理池验证闭环脚本
+├── tests/                  # 单元测试
+└── docs/                   # 文档与参考资料
